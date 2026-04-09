@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Heart Formation</title>
+  <style>
+    :root {
+      --bg-dark-top: #09070b;
+      --bg-dark-mid: #140b12;
+      --bg-dark-bottom: #1a0d17;
+      --text: #fff3f7;
+      --panel: rgba(11, 7, 12, 0.44);
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    html,
+    body {
+      margin: 0;
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background:
+        radial-gradient(circle at 20% 20%, rgba(255, 119, 160, 0.08), transparent 30%),
+        radial-gradient(circle at 75% 18%, rgba(255, 194, 214, 0.05), transparent 28%),
+        linear-gradient(180deg, var(--bg-dark-top), var(--bg-dark-mid) 52%, var(--bg-dark-bottom));
+      color: var(--text);
+      font-family: Georgia, "Times New Roman", serif;
+    }
+
+    canvas {
+      display: block;
+      width: 100%;
+      height: 100%;
+    }
+
+    .overlay {
+      position: fixed;
+      inset: 0;
+      pointer-events: none;
+      display: flex;
+      align-items: flex-start;
+      justify-content: center;
+      padding: 24px;
+    }
+
+    .panel {
+      min-width: min(92vw, 440px);
+      padding: 12px 18px;
+      border: 1px solid rgba(255, 255, 255, 0.14);
+      border-radius: 999px;
+      background: var(--panel);
+      backdrop-filter: blur(16px);
+      box-shadow: 0 16px 48px rgba(0, 0, 0, 0.24);
+      text-align: center;
+      text-transform: uppercase;
+      letter-spacing: 0.09em;
+      font-size: 11px;
+    }
+
+    .panel strong {
+      display: block;
+      margin-bottom: 5px;
+      letter-spacing: 0.2em;
+      font-size: 15px;
+      color: #ffdce7;
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+  <div class="overlay">
+    <div class="panel">
+      <strong>...</strong>
+      <3
+    </div>
+  </div>
+  <script src="./js/config.js"></script>
+  <script src="./js/utils.js"></script>
+  <script src="./js/heart.js"></script>
+  <script src="./js/characters.js"></script>
+  <script src="./script.js"></script>
+</body>
+</html>
