@@ -118,6 +118,42 @@
     return targetWidth;
   }
 
+  function drawCharacterLabel(ctx, x, footY, text, spriteHeight) {
+    const fontSize = Math.max(15, Math.round(spriteHeight * 0.17));
+    const baselineY = footY + fontSize * 1.35;
+
+    ctx.save();
+    ctx.font = `600 ${fontSize}px Georgia`;
+    ctx.textAlign = "center";
+    ctx.textBaseline = "middle";
+
+    const metrics = ctx.measureText(text);
+    const paddingX = fontSize * 0.65;
+    const backgroundWidth = metrics.width + paddingX * 2;
+    const backgroundHeight = fontSize * 1.55;
+    const radius = backgroundHeight / 2;
+    const backgroundX = x - backgroundWidth / 2;
+    const backgroundY = baselineY - backgroundHeight / 2;
+
+    ctx.fillStyle = "rgba(23, 10, 18, 0.58)";
+    ctx.beginPath();
+    ctx.moveTo(backgroundX + radius, backgroundY);
+    ctx.arcTo(backgroundX + backgroundWidth, backgroundY, backgroundX + backgroundWidth, backgroundY + backgroundHeight, radius);
+    ctx.arcTo(backgroundX + backgroundWidth, backgroundY + backgroundHeight, backgroundX, backgroundY + backgroundHeight, radius);
+    ctx.arcTo(backgroundX, backgroundY + backgroundHeight, backgroundX, backgroundY, radius);
+    ctx.arcTo(backgroundX, backgroundY, backgroundX + backgroundWidth, backgroundY, radius);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.lineWidth = 1;
+    ctx.strokeStyle = "rgba(255, 226, 235, 0.26)";
+    ctx.stroke();
+
+    ctx.fillStyle = "#fff1f5";
+    ctx.fillText(text, x, baselineY);
+    ctx.restore();
+  }
+
   function drawCharacters(ctx, state, scene, time) {
     const { boy, girl, kiss } = state.sprites;
     if (!boy || !girl || !state.characterLayout) {
@@ -141,6 +177,8 @@
 
     drawCharacterSprite(ctx, boy, actors.boy.frame, config.boyFrameCount, actors.boy.x, actors.boy.y, state.characterLayout.spriteHeight, actors.boy.flip);
     drawCharacterSprite(ctx, girl, actors.girl.frame, config.girlFrameCount, actors.girl.x, actors.girl.y, state.characterLayout.spriteHeight, actors.girl.flip);
+    drawCharacterLabel(ctx, actors.boy.x, actors.boy.y, "Quân", state.characterLayout.spriteHeight);
+    drawCharacterLabel(ctx, actors.girl.x, actors.girl.y, "Ly", state.characterLayout.spriteHeight);
 
     if (kiss) {
       const kissState = getKissState(scene);
