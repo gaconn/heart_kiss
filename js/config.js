@@ -51,10 +51,15 @@
       heartBox: null,
       hiddenSvgRoot: null,
       svgImage: null,
+      backdropImage: null,
       sprites: {
         boy: null,
         girl: null,
         kiss: null,
+      },
+      spriteMetrics: {
+        boy: null,
+        girl: null,
       },
       characterLayout: null,
     };

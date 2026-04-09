@@ -3,6 +3,71 @@
   const { config } = HeartApp;
   const { clamp, easeOutBack, loadRasterImage } = HeartApp.utils;
 
+  function measureSpriteFrames(image, frameCount) {
+    const canvas = document.createElement("canvas");
+    canvas.width = image.width;
+    canvas.height = image.height;
+
+    const context = canvas.getContext("2d", { willReadFrequently: true });
+    context.drawImage(image, 0, 0);
+
+    const imageData = context.getImageData(0, 0, canvas.width, canvas.height).data;
+    const frames = [];
+    let maxSourceWidth = 1;
+    let maxSourceHeight = 1;
+
+    for (let index = 0; index < frameCount; index += 1) {
+      const frameLeft = Math.round((index * image.width) / frameCount);
+      const frameRight = Math.round(((index + 1) * image.width) / frameCount);
+      const frameWidth = Math.max(1, frameRight - frameLeft);
+
+      let minX = frameWidth;
+      let minY = image.height;
+      let maxX = -1;
+      let maxY = -1;
+
+      for (let y = 0; y < image.height; y += 1) {
+        for (let x = frameLeft; x < frameRight; x += 1) {
+          const alpha = imageData[(y * image.width + x) * 4 + 3];
+          if (alpha < 16) {
+            continue;
+          }
+
+          const localX = x - frameLeft;
+          minX = Math.min(minX, localX);
+          minY = Math.min(minY, y);
+          maxX = Math.max(maxX, localX);
+          maxY = Math.max(maxY, y);
+        }
+      }
+
+      if (maxX < 0 || maxY < 0) {
+        minX = 0;
+        minY = 0;
+        maxX = frameWidth - 1;
+        maxY = image.height - 1;
+      }
+
+      const sourceWidth = Math.max(1, maxX - minX + 1);
+      const sourceHeight = Math.max(1, maxY - minY + 1);
+      maxSourceWidth = Math.max(maxSourceWidth, sourceWidth);
+      maxSourceHeight = Math.max(maxSourceHeight, sourceHeight);
+
+      frames.push({
+        sourceX: frameLeft + minX,
+        sourceY: minY,
+        sourceWidth,
+        sourceHeight,
+      });
+    }
+
+    return {
+      frames,
+      maxSourceWidth,
+      maxSourceHeight,
+    };
+  }
+
   async function loadAssets(state) {
     const [boySprite, girlSprite, kissImage] = await Promise.all([
       loadRasterImage(HeartApp.paths.boySprite),
@@ -13,6 +78,8 @@
     state.sprites.boy = boySprite;
     state.sprites.girl = girlSprite;
     state.sprites.kiss = kissImage;
+    state.spriteMetrics.boy = measureSpriteFrames(boySprite, config.boyFrameCount);
+    state.spriteMetrics.girl = measureSpriteFrames(girlSprite, config.girlFrameCount);
   }
 
   function updateLayout(state) {
@@ -22,10 +89,12 @@
     const heartBottom = state.heartOffsetY + (state.heartBox.y + state.heartBox.height) * state.heartScale;
     const laneY = Math.min(state.height - 24, heartBottom + heartHeight * 0.12);
     const spriteHeight = heartHeight / 3;
-    const boyFrameWidth = state.sprites.boy.width / config.boyFrameCount;
-    const girlFrameWidth = state.sprites.girl.width / config.girlFrameCount;
-    const boyWidth = spriteHeight * (boyFrameWidth / state.sprites.boy.height);
-    const girlWidth = spriteHeight * (girlFrameWidth / state.sprites.girl.height);
+    const boyMetrics = state.spriteMetrics.boy;
+    const girlMetrics = state.spriteMetrics.girl;
+    const boyScale = spriteHeight / boyMetrics.maxSourceHeight;
+    const girlScale = spriteHeight / girlMetrics.maxSourceHeight;
+    const boyWidth = boyMetrics.maxSourceWidth * boyScale;
+    const girlWidth = girlMetrics.maxSourceWidth * girlScale;
     const sidePadding = Math.max(18, Math.min(state.width * 0.04, 36));
     const meetGap = Math.max(30, heartWidth * 0.045);
 
@@ -91,10 +160,11 @@
     };
   }
 
-  function drawCharacterSprite(ctx, image, frameIndex, frameCount, x, y, targetHeight, flip) {
-    const frameWidth = image.width / frameCount;
-    const frameHeight = image.height;
-    const targetWidth = targetHeight * (frameWidth / frameHeight);
+  function drawCharacterSprite(ctx, image, metrics, frameIndex, x, y, targetHeight, flip) {
+    const frame = metrics.frames[frameIndex % metrics.frames.length];
+    const scale = targetHeight / metrics.maxSourceHeight;
+    const targetWidth = frame.sourceWidth * scale;
+    const targetFrameHeight = frame.sourceHeight * scale;
 
     ctx.save();
     ctx.translate(x, y);
@@ -104,14 +174,14 @@
 
     ctx.drawImage(
       image,
-      frameIndex * frameWidth,
-      0,
-      frameWidth,
-      frameHeight,
+      frame.sourceX,
+      frame.sourceY,
+      frame.sourceWidth,
+      frame.sourceHeight,
       -targetWidth / 2,
-      -targetHeight,
+      -targetFrameHeight,
       targetWidth,
-      targetHeight,
+      targetFrameHeight,
     );
     ctx.restore();
 
@@ -175,8 +245,8 @@
       ctx.fill();
     }
 
-    drawCharacterSprite(ctx, boy, actors.boy.frame, config.boyFrameCount, actors.boy.x, actors.boy.y, state.characterLayout.spriteHeight, actors.boy.flip);
-    drawCharacterSprite(ctx, girl, actors.girl.frame, config.girlFrameCount, actors.girl.x, actors.girl.y, state.characterLayout.spriteHeight, actors.girl.flip);
+    drawCharacterSprite(ctx, boy, state.spriteMetrics.boy, actors.boy.frame, actors.boy.x, actors.boy.y, state.characterLayout.spriteHeight, actors.boy.flip);
+    drawCharacterSprite(ctx, girl, state.spriteMetrics.girl, actors.girl.frame, actors.girl.x, actors.girl.y, state.characterLayout.spriteHeight, actors.girl.flip);
     drawCharacterLabel(ctx, actors.boy.x, actors.boy.y, "Quân", state.characterLayout.spriteHeight);
     drawCharacterLabel(ctx, actors.girl.x, actors.girl.y, "Ly", state.characterLayout.spriteHeight);
 

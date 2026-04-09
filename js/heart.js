@@ -146,6 +146,40 @@
     });
   }
 
+  function createBackdropSvgText(svgRoot) {
+    const clone = svgRoot.cloneNode(true);
+
+    Array.from(clone.children).forEach((child) => {
+      const isDefs = child.tagName === "defs";
+      const isBackgroundLayer = child.tagName === "g" && child.getAttribute("id") === "BACKGROUND";
+
+      if (!isDefs && !isBackgroundLayer) {
+        child.remove();
+      }
+    });
+
+    return new XMLSerializer().serializeToString(clone);
+  }
+
+  function drawImageCover(ctx, image, width, height, alpha = 1) {
+    const imageRatio = image.width / image.height;
+    const canvasRatio = width / height;
+
+    let drawWidth = width;
+    let drawHeight = height;
+
+    if (canvasRatio > imageRatio) {
+      drawHeight = width / imageRatio;
+    } else {
+      drawWidth = height * imageRatio;
+    }
+
+    ctx.save();
+    ctx.globalAlpha = alpha;
+    ctx.drawImage(image, (width - drawWidth) / 2, (height - drawHeight) / 2, drawWidth, drawHeight);
+    ctx.restore();
+  }
+
   async function parseSvgText(state, svgText) {
     const parser = new DOMParser();
     const documentSvg = parser.parseFromString(svgText, "image/svg+xml");
@@ -164,7 +198,14 @@
       throw new Error("Heart path not found in heart.svg");
     }
 
-    state.svgImage = await loadSvgImage(svgText);
+    const backdropSvgText = createBackdropSvgText(documentSvg.documentElement);
+    const [svgImage, backdropImage] = await Promise.all([
+      loadSvgImage(svgText),
+      loadSvgImage(backdropSvgText),
+    ]);
+
+    state.svgImage = svgImage;
+    state.backdropImage = backdropImage;
     state.heartPathData = mainPathNode.getAttribute("d") || "";
     state.heartPath = new Path2D(state.heartPathData);
     state.heartBox = mainPathNode.getBBox();
@@ -268,6 +309,11 @@
     halo.addColorStop(1, "rgba(255, 120, 165, 0)");
     ctx.fillStyle = halo;
     ctx.fillRect(0, 0, state.width, state.height);
+
+    if (state.backdropImage) {
+      const backdropAlpha = clamp(0.16 + scene.colorShift * 0.42 + scene.heartAlpha * 0.18, 0, 0.72);
+      drawImageCover(ctx, state.backdropImage, state.width, state.height, backdropAlpha);
+    }
   }
 
   function drawHeartBase(ctx, state, scene) {
@@ -306,6 +352,15 @@
     ctx.strokeStyle = `rgba(255, 224, 235, ${scene.colorShift * 0.3})`;
     ctx.lineWidth = 1.4 / state.heartScale;
     ctx.stroke(state.heartPath);
+
+    if (state.svgImage) {
+      const artworkAlpha = Math.max(0, (scene.heartAlpha - 0.18) / 0.82) * (0.35 + scene.colorShift * 0.65);
+      if (artworkAlpha > 0) {
+        ctx.globalAlpha = artworkAlpha;
+        ctx.drawImage(state.svgImage, 0, 0, 500, 500);
+      }
+    }
+
     ctx.restore();
   }
 
